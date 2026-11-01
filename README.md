@@ -2,48 +2,50 @@
 
 ## Project Overview
 
-The Mood-Based Music Recommendation System is a Python-based application that uses Computer Vision and facial emotion analysis to recommend music according to detected facial expressions.
+A Python-based application that uses Computer Vision and facial emotion analysis to recommend music based on detected facial expressions.
 
-The application captures a user's facial image through a webcam, analyzes facial expressions using DeepFace, identifies the dominant emotion, and generates relevant music recommendations based on the detected emotion and preferred language.
+The application captures an image through a webcam, analyzes facial expressions using DeepFace, identifies the dominant emotion, and generates language-based music recommendations with YouTube search links.
 
-## Key Features
+## Features
 
-- Real-time webcam image capture using OpenCV.
+- Facial image capture using Streamlit.
 - Facial emotion analysis using DeepFace.
-- Detection of emotions such as Happy, Sad, Angry, Neutral, and Fear.
-- Emotion-to-genre mapping.
-- Language-based music recommendations.
-- YouTube search link generation.
-- Interactive interface using Streamlit.
+- Detection of seven facial expression categories.
+- Emotion-based music genre mapping.
+- Multiple language preferences.
+- Emotion score visualization.
+- YouTube music search integration.
 
-## Technology Stack
+## Tech Stack
 
 - Python
+- Streamlit
 - OpenCV
 - DeepFace
-- Streamlit
-- urllib
-- YouTube Search URL
+- NumPy
+- Pandas
+- Pillow
 
-## System Workflow
+## Workflow
 
-1. User selects a preferred music language.
-2. Webcam captures the user's facial image.
-3. DeepFace analyzes the facial expression.
-4. The dominant emotion is identified.
-5. The emotion is mapped to a music genre.
-6. A language-specific music search query is generated.
-7. The user receives a YouTube search link.
+1. Select preferred music language.
+2. Capture facial image using webcam.
+3. Analyze facial expressions using DeepFace.
+4. Identify dominant facial expression.
+5. Map detected expression to a music genre.
+6. Generate a language-specific YouTube search link.
 
-## Emotion-Based Recommendation
+## Emotion-Based Music Mapping
 
-| Detected Emotion | Music Genre |
+| Facial Expression | Music Category |
 |---|---|
-| Happy | Pop |
-| Sad | Lofi |
-| Angry | Rock |
+| Happy | Pop / Upbeat |
+| Sad | Lo-fi / Relaxing |
+| Angry | Calm Instrumental |
 | Neutral | Acoustic |
 | Fear | Ambient |
+| Surprise | Energetic |
+| Disgust | Relaxing |
 
 ## Supported Languages
 
@@ -53,15 +55,36 @@ The application captures a user's facial image through a webcam, analyzes facial
 - Korean
 - Instrumental
 
+## Installation
+
+```bash
+git clone https://github.com/Bajpaisaumya/mood_based-_music_facial_expression.git
+
+cd mood_based-_music_facial_expression
+
+pip install -r requirements.txt
+```
+
+## Run the Application
+
+```bash
+streamlit run streamlit_app.py
+```
+
 ## Future Improvements
 
-- Integrate YouTube Data API for fetching actual video results.
-- Improve the recommendation engine.
-- Display multiple song recommendations.
-- Add music preferences and user feedback.
-- Improve webcam integration with Streamlit.
-- Add better error handling and testing.
+- Integrate YouTube Data API to fetch actual video results.
+- Display video thumbnails and multiple recommendations.
+- Improve recommendation personalization.
+- Add user feedback functionality.
+- Improve application testing and error handling.
 
-## Project Objective
+## Author
 
-To explore the integration of Computer Vision, facial emotion analysis, and music recommendation techniques in an interactive Python application.
+**Saumya Bajpai**
+
+Computer Science Engineering | AIML
+
+Interested in Artificial Intelligence, Machine Learning, Computer Vision and Generative AI.
+
+GitHub: https://github.com/Bajpaisaumya
