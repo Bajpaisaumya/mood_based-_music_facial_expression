@@ -1,14 +1,25 @@
 
 import streamlit as st
+import cv2
 import numpy as np
-from PIL import Image
 from deepface import DeepFace
 from urllib.parse import quote_plus
 
 
-# --------------------------------
-# 1. Emotion to Music Genre Mapping
-# --------------------------------
+# ==========================================
+# 1. PAGE CONFIGURATION
+# ==========================================
+
+st.set_page_config(
+    page_title="Mood-Based Music Recommender",
+    page_icon="🎵",
+    layout="centered"
+)
+
+
+# ==========================================
+# 2. EMOTION TO GENRE MAPPING
+# ==========================================
 
 emotion_to_genre = {
     "happy": "pop upbeat music",
@@ -21,24 +32,24 @@ emotion_to_genre = {
 }
 
 
-# --------------------------------
-# 2. Language Mapping
-# --------------------------------
+# ==========================================
+# 3. LANGUAGE MAPPING
+# ==========================================
 
 language_map = {
-    "english": "English",
-    "hindi": "Hindi",
-    "punjabi": "Punjabi",
-    "korean": "Korean",
-    "instrumental": "Instrumental"
+    "English": "English",
+    "Hindi": "Hindi",
+    "Punjabi": "Punjabi",
+    "Korean": "Korean",
+    "Instrumental": "Instrumental"
 }
 
 
-# --------------------------------
-# 3. Generate YouTube Search Link
-# --------------------------------
+# ==========================================
+# 4. YOUTUBE SEARCH FUNCTION
+# ==========================================
 
-def get_local_song(emotion, language):
+def get_youtube_search(emotion, language):
 
     genre = emotion_to_genre.get(
         emotion.lower(),
@@ -46,32 +57,56 @@ def get_local_song(emotion, language):
     )
 
     selected_language = language_map.get(
-        language.lower(),
+        language,
         "English"
     )
 
-    song = f"{selected_language} {genre}"
+    search_query = f"{selected_language} {genre}"
 
-    search_query = quote_plus(song)
+    encoded_query = quote_plus(search_query)
 
-    url = (
+    youtube_url = (
         "https://www.youtube.com/results"
-        f"?search_query={search_query}"
+        f"?search_query={encoded_query}"
     )
 
-    return song, url
+    return search_query, youtube_url
 
 
-# --------------------------------
-# 4. Emotion Detection
-# --------------------------------
+# ==========================================
+# 5. IMAGE PROCESSING
+# ==========================================
 
-def detect_emotion(image_array):
+def process_image(uploaded_image):
+
+    image_bytes = uploaded_image.getvalue()
+
+    image_array = np.frombuffer(
+        image_bytes,
+        dtype=np.uint8
+    )
+
+    image = cv2.imdecode(
+        image_array,
+        cv2.IMREAD_COLOR
+    )
+
+    if image is None:
+        raise ValueError("Unable to read captured image.")
+
+    return image
+
+
+# ==========================================
+# 6. EMOTION DETECTION
+# ==========================================
+
+def detect_emotion(image):
 
     result = DeepFace.analyze(
-        img_path=image_array,
+        img_path=image,
         actions=["emotion"],
-        enforce_detection=False
+        enforce_detection=True
     )
 
     if isinstance(result, list):
@@ -87,23 +122,22 @@ def detect_emotion(image_array):
     return dominant_emotion, emotions
 
 
-# --------------------------------
-# 5. Main Streamlit Application
-# --------------------------------
+# ==========================================
+# 7. MAIN APPLICATION
+# ==========================================
 
 def main():
-
-    st.set_page_config(
-        page_title="Mood-Based Music Recommender",
-        page_icon="🎵",
-        layout="centered"
-    )
 
     st.title("🎵 Mood-Based Music Recommender")
 
     st.write(
-        "Discover music recommendations based on "
-        "your facial expressions!"
+        "Discover music recommendations "
+        "based on your facial expressions."
+    )
+
+    st.info(
+        "Note: Facial expressions provide an estimate "
+        "and do not necessarily represent actual emotions."
     )
 
     st.divider()
@@ -111,97 +145,105 @@ def main():
     # Language selection
 
     language = st.selectbox(
-        "🌐 Choose your preferred language",
-        [
-            "english",
-            "hindi",
-            "punjabi",
-            "korean",
-            "instrumental"
-        ]
+        "🌐 Select your preferred language",
+        list(language_map.keys())
     )
+
+    # Camera input
 
     st.subheader("📸 Capture Your Face")
 
-    # Streamlit camera input
+    uploaded_image = st.camera_input(
+        "Take a picture using your camera"
+    )
 
-    img = st.camera_input("Take a picture")
+    if uploaded_image is not None:
 
-    if img is not None:
-
-        # Convert uploaded image to RGB NumPy array
-
-        image = Image.open(img).convert("RGB")
-
-        image_array = np.array(image)
+        # Display captured image
 
         st.image(
-            image,
+            uploaded_image,
             caption="Captured Image",
             use_container_width=True
         )
 
-        try:
+        # Analyze button
 
-            with st.spinner(
-                "Analyzing facial expression..."
-            ):
+        if st.button("🔍 Analyze My Expression"):
 
-                emotion, scores = detect_emotion(
-                    image_array
+            try:
+
+                with st.spinner(
+                    "Analyzing facial expression..."
+                ):
+
+                    image = process_image(uploaded_image)
+
+                    emotion, scores = detect_emotion(image)
+
+                # Display detected emotion
+
+                st.success(
+                    f"Detected Facial Expression: {emotion.upper()}"
                 )
 
-            st.success(
-                f"Detected Facial Expression: {emotion.upper()}"
-            )
+                # Emotion scores
 
-            # Emotion visualization
+                st.subheader("📊 Emotion Analysis")
 
-            st.subheader("📊 Emotion Analysis")
+                st.bar_chart(scores)
 
-            st.bar_chart(scores)
+                # Music recommendation
 
-            # Music recommendation
+                song_name, youtube_url = get_youtube_search(
+                    emotion,
+                    language
+                )
 
-            track_name, track_url = get_local_song(
-                emotion,
-                language
-            )
+                genre = emotion_to_genre.get(
+                    emotion.lower(),
+                    "relaxing music"
+                )
 
-            genre = emotion_to_genre.get(
-                emotion.lower(),
-                "relaxing music"
-            )
+                st.divider()
 
-            st.divider()
+                st.subheader("🎧 Your Music Recommendation")
 
-            st.subheader("🎧 Music Recommendation")
+                st.write("**Expression:**", emotion)
 
-            st.write("**Detected Emotion:**", emotion)
+                st.write("**Music Category:**", genre)
 
-            st.write("**Recommended Genre:**", genre)
+                st.write("**Language:**", language)
 
-            st.write("**Selected Language:**", language)
+                st.write("**Search Query:**", song_name)
 
-            st.markdown(
-                f"### 🎵 {track_name}"
-            )
+                # YouTube link
 
-            st.link_button(
-                "▶ Search Music on YouTube",
-                track_url
-            )
+                st.link_button(
+                    "▶ Find Music on YouTube",
+                    youtube_url
+                )
 
-        except Exception as e:
+                st.success(
+                    "Your music recommendation is ready!"
+                )
 
-            st.error(
-                f"Unable to analyze the image: {e}"
-            )
+            except ValueError as e:
+
+                st.error(
+                    f"Image processing error: {e}"
+                )
+
+            except Exception as e:
+
+                st.error(
+                    f"Something went wrong: {e}"
+                )
 
 
-# --------------------------------
-# 6. Application Entry Point
-# --------------------------------
+# ==========================================
+# 8. APPLICATION ENTRY POINT
+# ==========================================
 
 if __name__ == "__main__":
     main()
