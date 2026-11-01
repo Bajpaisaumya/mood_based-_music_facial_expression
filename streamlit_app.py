@@ -1,121 +1,207 @@
+
 import streamlit as st
-import cv2
+import numpy as np
+from PIL import Image
 from deepface import DeepFace
 from urllib.parse import quote_plus
 
 
+# --------------------------------
+# 1. Emotion to Music Genre Mapping
+# --------------------------------
+
 emotion_to_genre = {
-    "happy": "pop",
-    "sad": "lofi",
-    "angry": "rock",
-    "neutral": "acoustic",
-    "fear": "ambient"
+    "happy": "pop upbeat music",
+    "sad": "lofi relaxing music",
+    "angry": "calm instrumental music",
+    "neutral": "acoustic music",
+    "fear": "peaceful ambient music",
+    "surprise": "energetic music",
+    "disgust": "relaxing music"
 }
 
 
-def get_local_song(emotion, language):
-    songs = {
-        "happy": {
-            "english": "Happy Pop Music",
-            "hindi": "Hindi Happy Songs",
-            "punjabi": "Punjabi Happy Songs"
-        },
-        "sad": {
-            "english": "Relaxing Lofi Music",
-            "hindi": "Hindi Lofi Sad Songs",
-            "punjabi": "Punjabi Lofi Songs"
-        },
-        "angry": {
-            "english": "Rock Music",
-            "hindi": "Hindi Rock Songs",
-            "punjabi": "Punjabi Rock Songs"
-        },
-        "neutral": {
-            "english": "Relaxing Acoustic Music",
-            "hindi": "Hindi Acoustic Songs",
-            "punjabi": "Punjabi Acoustic Songs"
-        },
-        "fear": {
-            "english": "Calm Ambient Music",
-            "hindi": "Calm Hindi Music",
-            "punjabi": "Calm Punjabi Music"
-        }
-    }
+# --------------------------------
+# 2. Language Mapping
+# --------------------------------
 
-    song = songs.get(emotion.lower(), {}).get(
-        language.lower(),
-        "Relaxing Music"
+language_map = {
+    "english": "English",
+    "hindi": "Hindi",
+    "punjabi": "Punjabi",
+    "korean": "Korean",
+    "instrumental": "Instrumental"
+}
+
+
+# --------------------------------
+# 3. Generate YouTube Search Link
+# --------------------------------
+
+def get_local_song(emotion, language):
+
+    genre = emotion_to_genre.get(
+        emotion.lower(),
+        "relaxing music"
     )
 
+    selected_language = language_map.get(
+        language.lower(),
+        "English"
+    )
+
+    song = f"{selected_language} {genre}"
+
     search_query = quote_plus(song)
-    url = f"https://www.youtube.com/results?search_query={search_query}"
+
+    url = (
+        "https://www.youtube.com/results"
+        f"?search_query={search_query}"
+    )
 
     return song, url
-def capture_image():
-    cam = cv2.VideoCapture(0)
 
-    if not cam.isOpened():
-        st.error("Failed to access camera.")
-        return None
 
-    st.info("Press SPACE to capture, ESC to exit.")
+# --------------------------------
+# 4. Emotion Detection
+# --------------------------------
 
-    while True:
-        ret, frame = cam.read()
+def detect_emotion(image_array):
 
-        if not ret:
-            st.error("Failed to read frame from camera.")
-            cam.release()
-            cv2.destroyAllWindows()
-            return None
+    result = DeepFace.analyze(
+        img_path=image_array,
+        actions=["emotion"],
+        enforce_detection=False
+    )
 
-        cv2.imshow("Press SPACE to Capture", frame)
+    if isinstance(result, list):
+        result = result[0]
 
-        key = cv2.waitKey(1) & 0xFF
+    emotions = result["emotion"]
 
-        if key == 32:  # SPACE
-            cv2.imwrite("captured.jpg", frame)
-            cam.release()
-            cv2.destroyAllWindows()
-            return "captured.jpg"
+    dominant_emotion = max(
+        emotions,
+        key=emotions.get
+    )
 
-        elif key == 27:  # ESC
-            cam.release()
-            cv2.destroyAllWindows()
-            return None
+    return dominant_emotion, emotions
 
-def detect_emotion(img_path):
-    result = DeepFace.analyze(img_path, actions=['emotion'], enforce_detection=False)
-    emotions = result[0]['emotion'] if isinstance(result, list) else result['emotion']
-    dominant = max(emotions, key=emotions.get)
-    return dominant, emotions
+
+# --------------------------------
+# 5. Main Streamlit Application
+# --------------------------------
 
 def main():
+
+    st.set_page_config(
+        page_title="Mood-Based Music Recommender",
+        page_icon="🎵",
+        layout="centered"
+    )
+
     st.title("🎵 Mood-Based Music Recommender")
-    language = st.selectbox("🌐 Choose your preferred language", ["english", "hindi", "punjabi", "korean", "instrumental"])
 
-    
-    if st.button("📸 Capture Face"):
-        img_path = capture_image()
-        if img_path:
-            st.success("Image captured!")
-            st.image(img_path, caption="Captured Face", use_container_width=True)
-            
-            st.info("Detecting emotion...")
-            emotion, scores = detect_emotion(img_path)
-            st.success(f"Detected Emotion: {emotion}")
-            
-            genre = emotion_to_genre.get(emotion.lower(), "pop")
-            track_name, track_url = get_local_song(emotion, language)
-            st.write("Genre:", genre)
-            st.write("Language:", language)
-            st.write("Track Name:", track_name)
-            st.write("Track URL:", track_url)
+    st.write(
+        "Discover music recommendations based on "
+        "your facial expressions!"
+    )
 
-            if track_url:
-                st.markdown(f"🎧 **Recommended Song:** [{track_name}]({track_url})", unsafe_allow_html=True)
-            else:
-                st.warning("⚠️ No song found for this mood. Try a different expression.")
+    st.divider()
+
+    # Language selection
+
+    language = st.selectbox(
+        "🌐 Choose your preferred language",
+        [
+            "english",
+            "hindi",
+            "punjabi",
+            "korean",
+            "instrumental"
+        ]
+    )
+
+    st.subheader("📸 Capture Your Face")
+
+    # Streamlit camera input
+
+    img = st.camera_input("Take a picture")
+
+    if img is not None:
+
+        # Convert uploaded image to RGB NumPy array
+
+        image = Image.open(img).convert("RGB")
+
+        image_array = np.array(image)
+
+        st.image(
+            image,
+            caption="Captured Image",
+            use_container_width=True
+        )
+
+        try:
+
+            with st.spinner(
+                "Analyzing facial expression..."
+            ):
+
+                emotion, scores = detect_emotion(
+                    image_array
+                )
+
+            st.success(
+                f"Detected Facial Expression: {emotion.upper()}"
+            )
+
+            # Emotion visualization
+
+            st.subheader("📊 Emotion Analysis")
+
+            st.bar_chart(scores)
+
+            # Music recommendation
+
+            track_name, track_url = get_local_song(
+                emotion,
+                language
+            )
+
+            genre = emotion_to_genre.get(
+                emotion.lower(),
+                "relaxing music"
+            )
+
+            st.divider()
+
+            st.subheader("🎧 Music Recommendation")
+
+            st.write("**Detected Emotion:**", emotion)
+
+            st.write("**Recommended Genre:**", genre)
+
+            st.write("**Selected Language:**", language)
+
+            st.markdown(
+                f"### 🎵 {track_name}"
+            )
+
+            st.link_button(
+                "▶ Search Music on YouTube",
+                track_url
+            )
+
+        except Exception as e:
+
+            st.error(
+                f"Unable to analyze the image: {e}"
+            )
+
+
+# --------------------------------
+# 6. Application Entry Point
+# --------------------------------
 
 if __name__ == "__main__":
     main()
