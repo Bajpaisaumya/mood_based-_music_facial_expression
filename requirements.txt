@@ -1,5 +1,7 @@
-﻿streamlit
+streamlit
+opencv-python
 deepface
-opencv-python==4.13.0.92
-requests
-ttkbootstrap
+numpy
+pandas
+pillow
+tensorflow
